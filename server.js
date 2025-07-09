@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 
 
-const allowedOrigins = process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigins = ["https://pan-track-frontend-cchb.vercel.app/" , "http://localhost:5173"];
 app.use(
     cors({
         origin: allowedOrigins,
