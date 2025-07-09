@@ -6,10 +6,12 @@ import { ChatGroup } from "./models/chatGroup.models.js";
 import { Message } from "./models/message.models.js";
 
 const setupSocketIO = (server) => {
+    const allowedOrigins = ["https://pan-track-frontend-cchb.vercel.app", "http://localhost:5173"];
     const io = new Server(server, {
         cors: {
-            origin: process.env.CLIENT_URL || "http://localhost:5173",
-            credentials: true
+            origin: allowedOrigins,
+            credentials: true,
+            methods: ["GET", "POST"]
         }
     });
 
