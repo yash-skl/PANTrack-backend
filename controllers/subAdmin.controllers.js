@@ -3,6 +3,8 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { User } from "../models/user.models.js";
 import { SubAdmin } from "../models/subAdmin.models.js";
+import { ChatGroup } from "../models/chatGroup.models.js";
+import { Message } from "../models/message.models.js";
 
 // Create SubAdmin
 const createSubAdmin = asyncHandler(async (req, res) => {
@@ -48,7 +50,8 @@ const createSubAdmin = asyncHandler(async (req, res) => {
 
         console.log("SubAdmin created:", subAdmin._id);
 
-
+        // Add SubAdmin to default chat group or create one if it doesn't exist
+        await addToDefaultChatGroup(subAdmin._id);
 
         const createdSubAdmin = await SubAdmin.findById(subAdmin._id)
             .populate("user", "name email createdAt")
@@ -268,6 +271,96 @@ const loginSubAdmin = asyncHandler(async (req, res) => {
             .json(new ApiError(error.statusCode || 500, error.message));
     }
 });
+
+// Helper function to add SubAdmin to default chat group
+const addToDefaultChatGroup = async (subAdminId) => {
+    try {
+        // Check if default SubAdmin chat group exists
+        let defaultGroup = await ChatGroup.findOne({
+            name: "SubAdmin Chat Group",
+            type: "default"
+        });
+
+        if (!defaultGroup) {
+            // Create default SubAdmin chat group with first SubAdmin as member
+            defaultGroup = await ChatGroup.create({
+                name: "SubAdmin Chat Group",
+                description: "Default chat group for all SubAdmins",
+                type: "default",
+                members: [{
+                    user: subAdminId,
+                    userType: "SubAdmin",
+                    role: "member"
+                }],
+                createdBy: {
+                    user: subAdminId,
+                    userType: "SubAdmin"
+                }
+            });
+
+            // Create welcome message
+            await Message.create({
+                chatGroup: defaultGroup._id,
+                sender: {
+                    user: subAdminId,
+                    userType: "SubAdmin"
+                },
+                messageType: "system",
+                content: "Welcome to the SubAdmin Chat Group! This is where all SubAdmins can communicate."
+            });
+
+            console.log("Default SubAdmin chat group created");
+        } else {
+            // Check if SubAdmin is already a member
+            const isAlreadyMember = defaultGroup.members.some(
+                member => member.user.toString() === subAdminId.toString() && member.userType === "SubAdmin"
+            );
+
+            if (!isAlreadyMember) {
+                // Add SubAdmin to existing group
+                await ChatGroup.findByIdAndUpdate(defaultGroup._id, {
+                    $push: {
+                        members: {
+                            user: subAdminId,
+                            userType: "SubAdmin",
+                            role: "member"
+                        }
+                    },
+                    lastActivity: new Date()
+                });
+
+                // Create join message
+                const subAdmin = await SubAdmin.findById(subAdminId).populate('user', 'name');
+                const subAdminName = subAdmin.user?.name || 'A SubAdmin';
+                await Message.create({
+                    chatGroup: defaultGroup._id,
+                    sender: {
+                        user: subAdminId,
+                        userType: "SubAdmin"
+                    },
+                    messageType: "system",
+                    content: `${subAdminName} joined the SubAdmin Chat Group`
+                });
+
+                // Update last message
+                const lastMessage = await Message.findOne({
+                    chatGroup: defaultGroup._id
+                }).sort({ createdAt: -1 });
+
+                if (lastMessage) {
+                    await ChatGroup.findByIdAndUpdate(defaultGroup._id, {
+                        lastMessage: lastMessage._id
+                    });
+                }
+
+                console.log("SubAdmin added to default chat group");
+            }
+        }
+    } catch (error) {
+        console.error("Error adding SubAdmin to default chat group:", error);
+        // Don't throw error as this is not critical for SubAdmin creation
+    }
+};
 
 export {
     createSubAdmin,

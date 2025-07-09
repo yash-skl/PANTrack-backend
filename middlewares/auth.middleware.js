@@ -1,5 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.models.js";
+import { SubAdmin } from "../models/subAdmin.models.js";
 import jwt from 'jsonwebtoken';
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
@@ -20,6 +21,14 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
         if (!user) {
             return res.status(401).json({ message: "Invalid Access Token" });
+        }
+
+        // If user is a subadmin, get the SubAdmin data
+        if (user.role === 'subadmin') {
+            const subAdmin = await SubAdmin.findOne({ user: user._id });
+            if (subAdmin) {
+                user.subAdminData = subAdmin;
+            }
         }
 
         req.user = user;

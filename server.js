@@ -3,7 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import http from "http";
-import { Server } from "socket.io";
+import setupSocketIO from "./socket.js";
 import connectDB from "./db/index.js";
 
 dotenv.config({
@@ -30,6 +30,9 @@ app.use(urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
+// Setup Socket.IO
+const io = setupSocketIO(server);
+
 app.use((req, res, next) => {
     req.io = io;
     next();
@@ -40,30 +43,18 @@ import panRouter from "./routes/pan.routes.js";
 import userRouter from "./routes/user.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import subAdminRouter from "./routes/subAdmin.routes.js";
+import chatRouter from "./routes/chat.routes.js";
 
 
 app.use("/api/v1/pan", panRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/subadmin", subAdminRouter);
+app.use("/api/v1/chat", chatRouter);
  
 
 
-const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        credentials: true
-    }
-});
 
-
-io.on("connection", (socket) => {
-    console.log(`WebSocket Connection: ${socket.id}`);
-
-    socket.on("disconnect", () => {
-        console.log(`WebSocket Disconnected: ${socket.id}`);
-    });
-});
 
 
 
@@ -77,4 +68,4 @@ connectDB()
         console.log("MongoDB Connection Failed: ", error);
     });
 
-export default io;
+export { io };
