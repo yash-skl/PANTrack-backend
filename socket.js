@@ -4,12 +4,12 @@ import { User } from "./models/user.models.js";
 import { SubAdmin } from "./models/subAdmin.models.js";
 import { ChatGroup } from "./models/chatGroup.models.js";
 import { Message } from "./models/message.models.js";
+import { ALLOWED_ORIGINS } from "./constants.js";
 
 const setupSocketIO = (server) => {
-    const allowedOrigins = ["https://pan-track-frontend-cchb.vercel.app", "http://localhost:5173"];
     const io = new Server(server, {
         cors: {
-            origin: allowedOrigins,
+            origin: ALLOWED_ORIGINS,
             credentials: true,
             methods: ["GET", "POST"]
         }

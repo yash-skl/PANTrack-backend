@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import http from "http";
 import setupSocketIO from "./socket.js";
 import connectDB from "./db/index.js";
+import { ALLOWED_ORIGINS } from "./constants.js";
 
 dotenv.config({
     path: "./.env"
@@ -14,10 +15,9 @@ const app = express();
 const server = http.createServer(app);
 
 
-const allowedOrigins = ["https://pan-track-frontend-pt1g.vercel.app" , "http://localhost:5173"];
 app.use(
     cors({
-        origin: allowedOrigins,
+        origin: ALLOWED_ORIGINS,
         credentials: true, 
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"]
