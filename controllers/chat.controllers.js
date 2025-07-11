@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { getPopulatedMessages, populateMessageSender } from "../utils/messageUtils.js";
 
 // Create a new chat group
 const createChatGroup = asyncHandler(async (req, res) => {
@@ -157,16 +158,7 @@ const getChatMessages = asyncHandler(async (req, res) => {
         }
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const messages = await Message.find({
-        chatGroup: groupId,
-        isDeleted: false
-    })
-    .populate('sender.user', 'name email')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+    const messages = await getPopulatedMessages(groupId, page, limit);
 
     const totalMessages = await Message.countDocuments({
         chatGroup: groupId,
@@ -175,7 +167,7 @@ const getChatMessages = asyncHandler(async (req, res) => {
 
     return res.status(200).json(
         new ApiResponse(200, {
-            messages: messages.reverse(), // Reverse to show oldest first
+            messages,
             totalMessages,
             currentPage: parseInt(page),
             totalPages: Math.ceil(totalMessages / parseInt(limit))
@@ -234,9 +226,8 @@ const sendMessage = asyncHandler(async (req, res) => {
         lastActivity: new Date()
     });
 
-    // Populate the message
-    const populatedMessage = await Message.findById(message._id)
-        .populate('sender.user', 'name email');
+    // Populate the message with proper sender information
+    const populatedMessage = await populateMessageSender(message._id);
 
     return res.status(201).json(
         new ApiResponse(201, populatedMessage, "Message sent successfully")
@@ -302,9 +293,8 @@ const sendMessageWithFile = asyncHandler(async (req, res) => {
         lastActivity: new Date()
     });
 
-    // Populate the message
-    const populatedMessage = await Message.findById(message._id)
-        .populate('sender.user', 'name email');
+    // Populate the message with proper sender information
+    const populatedMessage = await populateMessageSender(message._id);
 
     return res.status(201).json(
         new ApiResponse(201, populatedMessage, "File message sent successfully")
@@ -505,8 +495,7 @@ const addReaction = asyncHandler(async (req, res) => {
         });
     }
 
-    const updatedMessage = await Message.findById(messageId)
-        .populate('sender.user', 'name email');
+    const updatedMessage = await populateMessageSender(messageId);
 
     return res.status(200).json(
         new ApiResponse(200, updatedMessage, "Reaction updated successfully")

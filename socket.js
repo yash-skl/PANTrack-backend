@@ -5,6 +5,7 @@ import { SubAdmin } from "./models/subAdmin.models.js";
 import { ChatGroup } from "./models/chatGroup.models.js";
 import { Message } from "./models/message.models.js";
 import { ALLOWED_ORIGINS } from "./constants.js";
+import { populateMessageSender } from "./utils/messageUtils.js";
 
 const setupSocketIO = (server) => {
     const io = new Server(server, {
@@ -149,9 +150,8 @@ const setupSocketIO = (server) => {
                     lastActivity: new Date()
                 });
 
-                // Populate the message
-                const populatedMessage = await Message.findById(message._id)
-                    .populate('sender.user', 'name email');
+                // Populate the message with proper sender information
+                const populatedMessage = await populateMessageSender(message._id);
 
                 // Emit to all users in the group
                 io.to(groupId).emit("new_message", populatedMessage);
@@ -208,8 +208,7 @@ const setupSocketIO = (server) => {
                     });
                 }
 
-                const updatedMessage = await Message.findById(messageId)
-                    .populate('sender.user', 'name email');
+                const updatedMessage = await populateMessageSender(messageId);
 
                 // Emit to all users in the group
                 io.to(message.chatGroup.toString()).emit("message_updated", updatedMessage);

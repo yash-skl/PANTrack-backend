@@ -5,6 +5,7 @@ import { User } from "../models/user.models.js";
 import { SubAdmin } from "../models/subAdmin.models.js";
 import { ChatGroup } from "../models/chatGroup.models.js";
 import { Message } from "../models/message.models.js";
+import { populateMessageSender } from "../utils/messageUtils.js";
 
 // Create SubAdmin
 const createSubAdmin = asyncHandler(async (req, res) => {
